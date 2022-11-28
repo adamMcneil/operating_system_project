@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <stdio.h>
@@ -8,6 +9,7 @@ using namespace std;
 
 int main()
 {
+    /////////////////////////////////SET UP SHARED MEMORY////////////////////////////////////////
     // ftok to generate unique key
     key_t key = ftok("shmfile",65);
 
@@ -17,13 +19,32 @@ int main()
     // shmat to attach to shared memory
     char *str = (char*) shmat(shmid,(void*)0,0);
 
-    printf("Data read from memory: %s\n",str);
+    /////////////////////////////////READ SETTINGS////////////////////////////////////////
+    // bufferLength must be less then 128 and positive
+    int bufferLength;
+    ifstream settingsFile;
+    settingsFile.open("settings.txt");
+    settingsFile >> bufferLength;
 
-    //detach from shared memory 
-    shmdt(str);
+    /////////////////////////////////READ DATA////////////////////////////////////////
+    // write head at bufferLength 
+    // read head at bufferLength + 1
+    int writeHeadIndex = bufferLength;
+    int readHeadIndex = bufferLength + 1;
 
-    // destroy the shared memory
-    shmctl(shmid,IPC_RMID,NULL);
+    int writeHead;
+    while (true)
+    {
+        if (str[readHeadIndex] != str[writeHeadIndex])
+        {
+            writeHead = str[readHeadIndex];
+            cout << str[writeHead] << endl;
+            writeHead++;
+            writeHead %= bufferLength;
+            str[readHeadIndex] = writeHead;
+            cout << "write head index: " << writeHead << endl;
+        }
+    }
 
     return 0;
 }
